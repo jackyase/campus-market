@@ -33,7 +33,26 @@
         </el-alert>
       </div>
 
-      <div v-loading="loading" class="feed">
+      <div class="feed">
+        <template v-if="loading">
+          <div v-for="i in 3" :key="i" class="post-card">
+            <el-skeleton animated>
+              <template #template>
+                <div class="sk-head">
+                  <el-skeleton-item variant="circle" style="width: 40px; height: 40px" />
+                  <div class="sk-meta">
+                    <el-skeleton-item variant="text" style="width: 30%" />
+                    <el-skeleton-item variant="text" style="width: 20%; margin-top: 6px" />
+                  </div>
+                </div>
+                <el-skeleton-item variant="text" style="width: 100%; margin-top: 16px" />
+                <el-skeleton-item variant="text" style="width: 100%" />
+                <el-skeleton-item variant="text" style="width: 60%" />
+              </template>
+            </el-skeleton>
+          </div>
+        </template>
+        <template v-else>
         <div v-for="post in posts" :key="post.id" class="post-card">
           <div class="post-head">
             <el-avatar :size="40" :src="post.authorAvatar" class="avatar" @click="goProfile(post.userId)">
@@ -61,7 +80,7 @@
 
           <div v-if="post.media.length" class="media">
             <div v-for="m in post.media" :key="m.url" class="media-block">
-              <el-image v-if="m.type === 'IMAGE'" :src="m.url" fit="cover" class="post-img" :preview-src-list="[m.url]" />
+              <el-image lazy v-if="m.type === 'IMAGE'" :src="m.url" fit="cover" class="post-img" :preview-src-list="[m.url]" />
               <video v-else :src="m.url" controls preload="metadata" class="post-video"></video>
             </div>
           </div>
@@ -76,7 +95,8 @@
           </div>
         </div>
 
-        <el-empty v-if="!loading && posts.length === 0" description="还没有帖子，来发第一条吧" :image-size="120" />
+        <el-empty v-if="posts.length === 0" description="还没有帖子，来发第一条吧" :image-size="120" />
+        </template>
       </div>
 
       <div v-if="total > size" class="pager">
@@ -322,6 +342,14 @@ onMounted(load)
   border-radius: 12px;
   padding: 16px;
   margin-bottom: 16px;
+}
+.sk-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sk-meta {
+  flex: 1;
 }
 .post-head {
   display: flex;

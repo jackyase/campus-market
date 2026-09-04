@@ -67,7 +67,7 @@
           <div v-if="products.length" class="prod-grid">
             <el-card v-for="p in products" :key="p.id" class="prod-card" :body-style="{ padding: 0 }" shadow="hover"
               @click="$router.push(`/product/${p.id}`)">
-              <el-image :src="p.images[0]" fit="cover" class="prod-img">
+              <el-image lazy :src="p.images[0]" fit="cover" class="prod-img">
                 <template #error><div class="img-fallback"><el-icon :size="30"><Picture /></el-icon></div></template>
               </el-image>
               <div class="prod-body">

@@ -56,7 +56,7 @@
 
       <div v-else class="grid">
         <el-card v-for="p in products" :key="p.id" class="card" shadow="hover" :body-style="{ padding: 0 }" @click="goDetail(p.id)">
-          <el-image :src="p.images[0]" fit="cover" class="cover">
+          <el-image lazy :src="p.images[0]" fit="cover" class="cover">
             <template #error>
               <div class="img-fallback"><el-icon :size="32"><Picture /></el-icon></div>
             </template>

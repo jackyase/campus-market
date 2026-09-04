@@ -12,7 +12,7 @@
         <el-table-column label="商品" min-width="280">
           <template #default="{ row }">
             <div class="goods" @click="$router.push(`/product/${row.id}`)">
-              <el-image :src="row.images[0]" fit="cover" class="goods-img">
+              <el-image lazy :src="row.images[0]" fit="cover" class="goods-img">
                 <template #error><div class="img-fallback"><el-icon><Picture /></el-icon></div></template>
               </el-image>
               <div class="goods-title">{{ row.title }}</div>
