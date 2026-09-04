@@ -39,6 +39,8 @@ mysql -u root -p < sql/init.sql
 
 数据表由 JPA（`ddl-auto: update`）自动创建，分类种子数据在启动时自动初始化。
 
+接口文档（Swagger UI）：启动后访问 http://localhost:8080/swagger-ui.html
+
 ### 前端
 
 ```bash
