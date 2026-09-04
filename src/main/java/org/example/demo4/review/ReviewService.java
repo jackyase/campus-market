@@ -2,6 +2,7 @@ package org.example.demo4.review;
 
 import org.example.demo4.common.BusinessException;
 import org.example.demo4.common.CurrentUserService;
+import org.example.demo4.notification.NotificationService;
 import org.example.demo4.review.dto.ReviewRequest;
 import org.example.demo4.review.dto.ReviewResponse;
 import org.example.demo4.trade.Order;
@@ -25,15 +26,18 @@ public class ReviewService {
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
     private final CurrentUserService currentUserService;
+    private final NotificationService notificationService;
 
     public ReviewService(ReviewRepository reviewRepository,
                          OrderRepository orderRepository,
                          UserRepository userRepository,
-                         CurrentUserService currentUserService) {
+                         CurrentUserService currentUserService,
+                         NotificationService notificationService) {
         this.reviewRepository = reviewRepository;
         this.orderRepository = orderRepository;
         this.userRepository = userRepository;
         this.currentUserService = currentUserService;
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -60,6 +64,8 @@ public class ReviewService {
         review.setSellerRating(req.getSellerRating());
         review.setContent(req.getContent());
         reviewRepository.save(review);
+        notificationService.notify(review.getSellerId(), NotificationService.TYPE_REVIEW,
+                "收到一条新评价「" + review.getProductTitle() + "」", order.getId());
         return toResponse(review, reviewer);
     }
 

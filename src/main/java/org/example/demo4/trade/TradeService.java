@@ -3,6 +3,7 @@ package org.example.demo4.trade;
 import org.example.demo4.common.BusinessException;
 import org.example.demo4.common.CurrentUserService;
 import org.example.demo4.common.PageResult;
+import org.example.demo4.notification.NotificationService;
 import org.example.demo4.product.Product;
 import org.example.demo4.product.ProductImage;
 import org.example.demo4.product.ProductImageRepository;
@@ -40,6 +41,7 @@ public class TradeService {
     private final CurrentUserService currentUserService;
     private final ReviewRepository reviewRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     public TradeService(CartItemRepository cartItemRepository,
                         OrderRepository orderRepository,
@@ -48,7 +50,8 @@ public class TradeService {
                         PayService payService,
                         CurrentUserService currentUserService,
                         ReviewRepository reviewRepository,
-                        UserRepository userRepository) {
+                        UserRepository userRepository,
+                        NotificationService notificationService) {
         this.cartItemRepository = cartItemRepository;
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
@@ -57,6 +60,7 @@ public class TradeService {
         this.currentUserService = currentUserService;
         this.reviewRepository = reviewRepository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
     }
 
     // ============ 购物车 ============
@@ -151,6 +155,8 @@ public class TradeService {
         }
         Order order = buildOrder(buyer, product, qty);
         orderRepository.save(order);
+        notificationService.notify(order.getSellerId(), NotificationService.TYPE_ORDER,
+                "有买家下单了「" + order.getProductTitle() + "」", order.getId());
         return toResponse(order);
     }
 
@@ -171,6 +177,8 @@ public class TradeService {
             }
             Order order = buildOrder(buyer, product, item.getQuantity());
             orderRepository.save(order);
+            notificationService.notify(order.getSellerId(), NotificationService.TYPE_ORDER,
+                    "有买家下单了「" + order.getProductTitle() + "」", order.getId());
             cartItemRepository.delete(item);
             result.add(toResponse(order));
         }
@@ -275,6 +283,8 @@ public class TradeService {
         }
         order.setStatus(OrderStatus.SHIPPED);
         orderRepository.save(order);
+        notificationService.notify(order.getBuyerId(), NotificationService.TYPE_SHIPPED,
+                "你的订单「" + order.getProductTitle() + "」已发货", order.getId());
         return toResponse(order);
     }
 
@@ -288,6 +298,8 @@ public class TradeService {
         }
         order.setStatus(OrderStatus.COMPLETED);
         orderRepository.save(order);
+        notificationService.notify(order.getSellerId(), NotificationService.TYPE_COMPLETED,
+                "买家已确认收货「" + order.getProductTitle() + "」", order.getId());
         return toResponse(order);
     }
 

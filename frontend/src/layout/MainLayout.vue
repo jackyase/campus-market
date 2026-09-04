@@ -12,6 +12,47 @@
           <el-menu-item index="/profile">个人中心</el-menu-item>
         </el-menu>
         <div class="right">
+          <el-popover
+            v-if="userStore.isLoggedIn"
+            placement="bottom-end"
+            :width="320"
+            trigger="click"
+            :teleported="false"
+            @show="loadNotifications"
+          >
+            <template #reference>
+              <el-badge :value="unreadCount" :hidden="unreadCount === 0" class="notify-badge">
+                <el-button circle>
+                  <el-icon><Bell /></el-icon>
+                </el-button>
+              </el-badge>
+            </template>
+            <div class="notify-panel">
+              <div class="notify-head">
+                <span class="notify-title">通知</span>
+                <el-button
+                  v-if="unreadCount > 0"
+                  link
+                  type="primary"
+                  size="small"
+                  @click="onMarkAllRead"
+                >全部已读</el-button>
+              </div>
+              <div class="notify-list">
+                <div v-if="notifications.length === 0" class="notify-empty">暂无通知</div>
+                <div
+                  v-for="n in notifications"
+                  :key="n.id"
+                  class="notify-item"
+                  :class="{ unread: !n.read }"
+                  @click="onRead(n)"
+                >
+                  <div class="notify-content">{{ n.content }}</div>
+                  <div class="notify-time">{{ formatTime(n.createdAt) }}</div>
+                </div>
+              </div>
+            </div>
+          </el-popover>
           <el-badge :value="cartCount" :hidden="cartCount === 0" class="cart-badge desktop-only">
             <el-button circle @click="$router.push('/cart')">
               <el-icon><ShoppingCart /></el-icon>
@@ -73,15 +114,24 @@
 </template>
 
 <script setup>
-import { computed, ref, watch, onMounted } from 'vue'
+import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '../store/user'
 import { getCart } from '../api/cart'
+import {
+  getNotifications,
+  getUnreadCount,
+  markNotificationRead,
+  markAllNotificationsRead
+} from '../api/notification'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const cartCount = ref(0)
+
+const unreadCount = ref(0)
+const notifications = ref([])
 
 const activeMenu = computed(() => '/' + (route.path.split('/')[1] || ''))
 
@@ -98,6 +148,54 @@ async function loadCartCount() {
   }
 }
 
+async function loadUnreadCount() {
+  if (!userStore.isLoggedIn) {
+    unreadCount.value = 0
+    return
+  }
+  try {
+    const res = await getUnreadCount()
+    unreadCount.value = res.data
+  } catch (e) {
+    unreadCount.value = 0
+  }
+}
+
+async function loadNotifications() {
+  if (!userStore.isLoggedIn) return
+  try {
+    const res = await getNotifications(0, 20)
+    notifications.value = res.data.list || []
+  } catch (e) {
+    notifications.value = []
+  }
+}
+
+async function onRead(n) {
+  if (n.read) return
+  try {
+    await markNotificationRead(n.id)
+    n.read = true
+    unreadCount.value = Math.max(unreadCount.value - 1, 0)
+  } catch (e) {
+    // ignore
+  }
+}
+
+async function onMarkAllRead() {
+  try {
+    await markAllNotificationsRead()
+    notifications.value.forEach((n) => (n.read = true))
+    unreadCount.value = 0
+  } catch (e) {
+    // ignore
+  }
+}
+
+function formatTime(t) {
+  return t ? t.replace('T', ' ').substring(0, 16) : ''
+}
+
 function onCommand(cmd) {
   if (cmd === 'profile') router.push('/profile')
   if (cmd === 'orders') router.push('/orders')
@@ -108,8 +206,40 @@ function onCommand(cmd) {
   }
 }
 
-watch(() => userStore.isLoggedIn, loadCartCount)
-onMounted(loadCartCount)
+let pollTimer = null
+
+function startPolling() {
+  loadUnreadCount()
+  if (pollTimer) clearInterval(pollTimer)
+  pollTimer = setInterval(loadUnreadCount, 30000)
+}
+
+function stopPolling() {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
+  }
+}
+
+watch(() => userStore.isLoggedIn, (loggedIn) => {
+  loadCartCount()
+  if (loggedIn) {
+    startPolling()
+  } else {
+    unreadCount.value = 0
+    notifications.value = []
+    stopPolling()
+  }
+})
+
+onMounted(() => {
+  loadCartCount()
+  if (userStore.isLoggedIn) {
+    startPolling()
+  }
+})
+
+onBeforeUnmount(stopPolling)
 </script>
 
 <style scoped>
@@ -172,6 +302,54 @@ onMounted(loadCartCount)
 }
 .main {
   flex: 1;
+}
+.notify-panel {
+  display: flex;
+  flex-direction: column;
+}
+.notify-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.notify-title {
+  font-weight: 600;
+  color: #303133;
+}
+.notify-list {
+  max-height: 320px;
+  overflow-y: auto;
+  margin-top: 4px;
+}
+.notify-empty {
+  text-align: center;
+  color: #909399;
+  padding: 24px 0;
+  font-size: 13px;
+}
+.notify-item {
+  padding: 10px 4px;
+  border-bottom: 1px solid #f7f7f7;
+  cursor: pointer;
+}
+.notify-item:hover {
+  background: #f5f7fa;
+}
+.notify-item.unread .notify-content {
+  font-weight: 600;
+  color: #303133;
+}
+.notify-content {
+  font-size: 13px;
+  color: #606266;
+  line-height: 1.5;
+}
+.notify-time {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #c0c4cc;
 }
 .bottom-nav {
   display: none;
