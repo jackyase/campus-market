@@ -57,6 +57,7 @@
             </div>
             <div class="actions">
               <el-button size="large" @click="onChat">联系卖家</el-button>
+              <el-button size="large" @click="onBargain">砍价</el-button>
               <el-button size="large" @click="onCart">加入购物车</el-button>
               <el-button type="danger" size="large" @click="onBuy">立即购买</el-button>
             </div>
@@ -104,6 +105,19 @@
         <el-button type="danger" :loading="submittingReport" @click="submitReport">提交举报</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="bargainVisible" title="砍价" width="380px">
+      <el-form label-width="60px">
+        <el-form-item label="出价">
+          <el-input-number v-model="bargainPrice" :min="0.01" :precision="2" :step="1" style="width: 100%" placeholder="输入你的心理价" />
+        </el-form-item>
+      </el-form>
+      <div class="bargain-hint">当前售价 ¥{{ product?.price }}，出价需低于售价</div>
+      <template #footer>
+        <el-button @click="bargainVisible = false">取消</el-button>
+        <el-button type="primary" :loading="submittingBargain" @click="submitBargain">提交砍价</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -119,6 +133,7 @@ import { getPublicProfile } from '../api/user'
 import { getProductReviews } from '../api/review'
 import { getFavoriteIds, toggleFavorite } from '../api/favorite'
 import { reportTarget } from '../api/report'
+import { createBargain } from '../api/bargain'
 import { useUserStore } from '../store/user'
 import { CONDITION_LABELS, CONDITION_TAG_TYPES, STATUS_LABELS } from '../utils/constants'
 
@@ -135,6 +150,9 @@ const sellerRatingCount = ref(0)
 const reportVisible = ref(false)
 const reportReason = ref('')
 const submittingReport = ref(false)
+const bargainVisible = ref(false)
+const bargainPrice = ref(null)
+const submittingBargain = ref(false)
 
 async function load() {
   loading.value = true
@@ -210,6 +228,27 @@ async function submitReport() {
     reportReason.value = ''
   } finally {
     submittingReport.value = false
+  }
+}
+
+function onBargain() {
+  if (!requireLogin()) return
+  bargainPrice.value = null
+  bargainVisible.value = true
+}
+
+async function submitBargain() {
+  if (!bargainPrice.value || bargainPrice.value <= 0) {
+    ElMessage.warning('请输入出价')
+    return
+  }
+  submittingBargain.value = true
+  try {
+    await createBargain({ productId: product.value.id, price: bargainPrice.value })
+    ElMessage.success('砍价已提交，等待卖家处理')
+    bargainVisible.value = false
+  } finally {
+    submittingBargain.value = false
   }
 }
 
@@ -335,6 +374,11 @@ onMounted(load)
 .report-line {
   margin-top: 12px;
   text-align: right;
+}
+.bargain-hint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #909399;
 }
 .hint {
   margin-top: 12px;

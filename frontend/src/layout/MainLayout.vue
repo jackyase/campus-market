@@ -81,6 +81,7 @@
                   <el-dropdown-item command="orders">我的订单</el-dropdown-item>
                   <el-dropdown-item command="cart">购物车</el-dropdown-item>
                   <el-dropdown-item command="favorites">我的收藏</el-dropdown-item>
+                  <el-dropdown-item command="bargains">我的砍价</el-dropdown-item>
                   <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
@@ -222,6 +223,7 @@ function onCommand(cmd) {
   if (cmd === 'orders') router.push('/orders')
   if (cmd === 'cart') router.push('/cart')
   if (cmd === 'favorites') router.push('/favorites')
+  if (cmd === 'bargains') router.push('/bargains')
   if (cmd === 'logout') {
     userStore.logout()
     router.push('/login')
