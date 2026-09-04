@@ -60,6 +60,9 @@
               <el-button size="large" @click="onCart">加入购物车</el-button>
               <el-button type="danger" size="large" @click="onBuy">立即购买</el-button>
             </div>
+            <div class="report-line">
+              <el-button link type="danger" size="small" @click="reportVisible = true">举报该商品</el-button>
+            </div>
           </div>
         </div>
 
@@ -89,6 +92,18 @@
         </div>
       </el-card>
     </div>
+
+    <el-dialog v-model="reportVisible" title="举报该商品" width="420px">
+      <el-form label-width="80px">
+        <el-form-item label="举报原因">
+          <el-input v-model="reportReason" type="textarea" :rows="3" maxlength="200" show-word-limit placeholder="如：虚假信息、违禁品、价格欺诈…" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="reportVisible = false">取消</el-button>
+        <el-button type="danger" :loading="submittingReport" @click="submitReport">提交举报</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -103,6 +118,7 @@ import { createOrder } from '../api/order'
 import { getPublicProfile } from '../api/user'
 import { getProductReviews } from '../api/review'
 import { getFavoriteIds, toggleFavorite } from '../api/favorite'
+import { reportTarget } from '../api/report'
 import { useUserStore } from '../store/user'
 import { CONDITION_LABELS, CONDITION_TAG_TYPES, STATUS_LABELS } from '../utils/constants'
 
@@ -116,6 +132,9 @@ const loading = ref(false)
 const reviews = ref([])
 const sellerRating = ref(0)
 const sellerRatingCount = ref(0)
+const reportVisible = ref(false)
+const reportReason = ref('')
+const submittingReport = ref(false)
 
 async function load() {
   loading.value = true
@@ -175,6 +194,23 @@ async function onFavorite() {
   const res = await toggleFavorite(product.value.id)
   favorited.value = res.data
   ElMessage.success(res.data ? '已收藏' : '已取消收藏')
+}
+
+async function submitReport() {
+  if (!requireLogin()) return
+  if (!reportReason.value.trim()) {
+    ElMessage.warning('请填写举报原因')
+    return
+  }
+  submittingReport.value = true
+  try {
+    await reportTarget({ targetType: 'PRODUCT', targetId: product.value.id, reason: reportReason.value })
+    ElMessage.success('举报已提交')
+    reportVisible.value = false
+    reportReason.value = ''
+  } finally {
+    submittingReport.value = false
+  }
 }
 
 onMounted(load)
@@ -295,6 +331,10 @@ onMounted(load)
 }
 .actions .el-button {
   flex: 1;
+}
+.report-line {
+  margin-top: 12px;
+  text-align: right;
 }
 .hint {
   margin-top: 12px;

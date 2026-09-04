@@ -62,11 +62,12 @@
               <div class="name">{{ post.authorName }}</div>
               <div class="time">{{ formatTime(post.createdAt) }}</div>
             </div>
-            <el-dropdown v-if="post.mine" @command="(c) => c === 'del' && onDeletePost(post)">
+            <el-dropdown @command="(c) => onPostCommand(c, post)">
               <el-icon class="more"><MoreFilled /></el-icon>
               <template #dropdown>
                 <el-dropdown-menu>
-                  <el-dropdown-item command="del">删除</el-dropdown-item>
+                  <el-dropdown-item v-if="post.mine" command="del">删除</el-dropdown-item>
+                  <el-dropdown-item v-else command="report">举报</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
@@ -128,6 +129,18 @@
         </div>
       </div>
     </el-drawer>
+
+    <el-dialog v-model="reportVisible" title="举报该帖子" width="420px">
+      <el-form label-width="80px">
+        <el-form-item label="举报原因">
+          <el-input v-model="reportReason" type="textarea" :rows="3" maxlength="200" show-word-limit placeholder="如：广告、辱骂、侵权内容…" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="reportVisible = false">取消</el-button>
+        <el-button type="danger" :loading="submittingReport" @click="submitReport">提交举报</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -139,6 +152,7 @@ import { Picture, VideoPlay, Plus, Delete, CircleClose, MoreFilled } from '@elem
 import { useUserStore } from '../store/user'
 import { getPosts, createPost, deletePost, likePost, getComments, addComment, deleteComment } from '../api/community'
 import { uploadImage, uploadVideo } from '../api/upload'
+import { reportTarget } from '../api/report'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -158,6 +172,11 @@ const currentPost = ref(null)
 const comments = ref([])
 const commentText = ref('')
 const submittingComment = ref(false)
+
+const reportVisible = ref(false)
+const reportTargetId = ref(null)
+const reportReason = ref('')
+const submittingReport = ref(false)
 
 async function load() {
   loading.value = true
@@ -250,6 +269,32 @@ async function onDeletePost(post) {
   await deletePost(post.id)
   ElMessage.success('已删除')
   load()
+}
+
+function onPostCommand(cmd, post) {
+  if (cmd === 'del') {
+    onDeletePost(post)
+  } else if (cmd === 'report') {
+    reportTargetId.value = post.id
+    reportReason.value = ''
+    reportVisible.value = true
+  }
+}
+
+async function submitReport() {
+  if (!reportReason.value.trim()) {
+    ElMessage.warning('请填写举报原因')
+    return
+  }
+  submittingReport.value = true
+  try {
+    await reportTarget({ targetType: 'POST', targetId: reportTargetId.value, reason: reportReason.value })
+    ElMessage.success('举报已提交')
+    reportVisible.value = false
+    reportReason.value = ''
+  } finally {
+    submittingReport.value = false
+  }
 }
 
 async function onDeleteComment(c) {
