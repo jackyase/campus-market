@@ -106,6 +106,9 @@ public class TradeService {
         if (product.getStatus() != ProductStatus.ON_SALE) {
             throw new BusinessException("商品已下架或已售出");
         }
+        if (product.getSellerId().equals(userId)) {
+            throw new BusinessException("不能购买自己发布的商品");
+        }
         int qty = quantity == null || quantity < 1 ? 1 : quantity;
         CartItem item = cartItemRepository.findByUserIdAndProductId(userId, productId)
                 .orElseGet(CartItem::new);
@@ -149,6 +152,9 @@ public class TradeService {
         if (product.getStatus() != ProductStatus.ON_SALE) {
             throw new BusinessException("商品已下架或已售出");
         }
+        if (product.getSellerId().equals(buyer.getId())) {
+            throw new BusinessException("不能购买自己发布的商品");
+        }
         int qty = quantity == null || quantity < 1 ? 1 : quantity;
         if (qty > product.getStock()) {
             throw new BusinessException("库存不足");
@@ -171,6 +177,9 @@ public class TradeService {
                     .orElseThrow(() -> new BusinessException("商品不存在"));
             if (product.getStatus() != ProductStatus.ON_SALE) {
                 throw new BusinessException("商品「" + product.getTitle() + "」已下架或已售出");
+            }
+            if (product.getSellerId().equals(buyer.getId())) {
+                throw new BusinessException("不能购买自己发布的商品");
             }
             if (item.getQuantity() > product.getStock()) {
                 throw new BusinessException("商品「" + product.getTitle() + "」库存不足");
@@ -235,7 +244,7 @@ public class TradeService {
     @Transactional
     public OrderResponse pay(Long orderId, String method) {
         Long buyerId = currentUserService.requireUser().getId();
-        Order order = orderRepository.findByIdAndBuyerId(orderId, buyerId)
+        Order order = orderRepository.findByIdAndBuyerIdForUpdate(orderId, buyerId)
                 .orElseThrow(() -> new BusinessException("订单不存在"));
         if (order.getStatus() != OrderStatus.PENDING_PAYMENT) {
             throw new BusinessException("订单当前状态不可支付");
@@ -248,15 +257,17 @@ public class TradeService {
         order.setPaidAt(LocalDateTime.now());
         orderRepository.save(order);
 
-        // 扣减库存（悲观锁防止并发超卖），售罄则下架
-        productRepository.findByIdForUpdate(order.getProductId()).ifPresent(product -> {
-            int left = Math.max(product.getStock() - order.getQuantity(), 0);
-            product.setStock(left);
-            if (left == 0) {
-                product.setStatus(ProductStatus.SOLD);
-            }
-            productRepository.save(product);
-        });
+        // 扣减库存（悲观锁防止并发超卖），库存不足则整体回滚
+        Product product = productRepository.findByIdForUpdate(order.getProductId())
+                .orElseThrow(() -> new BusinessException("商品不存在"));
+        if (product.getStock() < order.getQuantity()) {
+            throw new BusinessException("库存不足，无法支付");
+        }
+        product.setStock(product.getStock() - order.getQuantity());
+        if (product.getStock() == 0) {
+            product.setStatus(ProductStatus.SOLD);
+        }
+        productRepository.save(product);
         return toResponse(order);
     }
 
