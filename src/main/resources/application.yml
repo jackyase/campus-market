@@ -1,0 +1,27 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: campus-market
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3307/campus_market?useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+    username: root
+    password: "123456"
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    show-sql: false
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 200MB
+
+app:
+  jwt:
+    secret: campus-market-jwt-secret-0123456789abcdef0123456789abcdef0123456789abcdef
+    expiration: 86400000
+  upload:
+    dir: D:/campus-market/upload
