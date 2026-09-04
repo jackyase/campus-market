@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -139,6 +140,19 @@ public class ProductService {
 
     public List<ProductResponse> listMine(Long sellerId) {
         return toListResponse(productRepository.findBySellerIdOrderByCreatedAtDesc(sellerId));
+    }
+
+    public List<ProductResponse> listByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        Map<Long, Product> byId = productRepository.findAllById(ids).stream()
+                .collect(Collectors.toMap(Product::getId, Function.identity()));
+        List<Product> ordered = ids.stream()
+                .map(byId::get)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+        return toListResponse(ordered);
     }
 
     private List<ProductResponse> toListResponse(List<Product> products) {

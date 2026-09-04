@@ -25,7 +25,14 @@
               <span class="price">¥{{ product.price }}</span>
               <span v-if="product.originalPrice" class="original">¥{{ product.originalPrice }}</span>
             </div>
-            <h1 class="title">{{ product.title }}</h1>
+            <div class="title-row">
+              <h1 class="title">{{ product.title }}</h1>
+              <el-button circle class="fav-btn" @click="onFavorite">
+                <el-icon :size="20" :color="favorited ? '#f7ba2a' : '#909399'">
+                  <StarFilled v-if="favorited" /><Star v-else />
+                </el-icon>
+              </el-button>
+            </div>
             <div class="tags">
               <el-tag :type="CONDITION_TAG_TYPES[product.condition]" size="small">
                 {{ CONDITION_LABELS[product.condition] }}
@@ -95,6 +102,7 @@ import { addCart } from '../api/cart'
 import { createOrder } from '../api/order'
 import { getPublicProfile } from '../api/user'
 import { getProductReviews } from '../api/review'
+import { getFavoriteIds, toggleFavorite } from '../api/favorite'
 import { useUserStore } from '../store/user'
 import { CONDITION_LABELS, CONDITION_TAG_TYPES, STATUS_LABELS } from '../utils/constants'
 
@@ -102,6 +110,7 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const product = ref(null)
+const favorited = ref(false)
 const mainImage = ref('')
 const loading = ref(false)
 const reviews = ref([])
@@ -114,6 +123,10 @@ async function load() {
     const res = await getProduct(route.params.id)
     product.value = res.data
     mainImage.value = res.data.images[0] || ''
+    if (userStore.isLoggedIn) {
+      const idsRes = await getFavoriteIds().catch(() => null)
+      favorited.value = !!idsRes && (idsRes.data || []).includes(Number(res.data.id))
+    }
     const [sellerRes, reviewsRes] = await Promise.all([
       getPublicProfile(res.data.sellerId),
       getProductReviews(res.data.id)
@@ -155,6 +168,13 @@ async function onBuy() {
 function onChat() {
   if (!requireLogin()) return
   router.push(`/chat?with=${product.value.sellerId}`)
+}
+
+async function onFavorite() {
+  if (!requireLogin()) return
+  const res = await toggleFavorite(product.value.id)
+  favorited.value = res.data
+  ElMessage.success(res.data ? '已收藏' : '已取消收藏')
 }
 
 onMounted(load)
@@ -225,6 +245,19 @@ onMounted(load)
   color: #303133;
   margin: 14px 0;
   line-height: 1.4;
+}
+.title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 14px 0;
+}
+.title-row .title {
+  margin: 0;
+}
+.fav-btn {
+  flex-shrink: 0;
 }
 .tags {
   display: flex;
