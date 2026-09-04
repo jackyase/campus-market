@@ -49,6 +49,7 @@
               <el-icon class="arrow"><ArrowRight /></el-icon>
             </div>
             <div class="actions">
+              <el-button size="large" @click="onChat">联系卖家</el-button>
               <el-button size="large" @click="onCart">加入购物车</el-button>
               <el-button type="danger" size="large" @click="onBuy">立即购买</el-button>
             </div>
@@ -149,6 +150,11 @@ async function onBuy() {
   const res = await createOrder({ productId: product.value.id, quantity: 1 })
   ElMessage.success('下单成功')
   router.push(`/orders/${res.data.id}`)
+}
+
+function onChat() {
+  if (!requireLogin()) return
+  router.push(`/chat?with=${product.value.sellerId}`)
 }
 
 onMounted(load)
@@ -252,6 +258,7 @@ onMounted(load)
 .actions {
   display: flex;
   gap: 12px;
+  flex-wrap: wrap;
 }
 .actions .el-button {
   flex: 1;

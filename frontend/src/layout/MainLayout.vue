@@ -53,6 +53,11 @@
               </div>
             </div>
           </el-popover>
+          <el-badge v-if="userStore.isLoggedIn" :value="msgUnreadCount" :hidden="msgUnreadCount === 0" class="notify-badge">
+            <el-button circle @click="$router.push('/chat')">
+              <el-icon><ChatDotRound /></el-icon>
+            </el-button>
+          </el-badge>
           <el-badge :value="cartCount" :hidden="cartCount === 0" class="cart-badge desktop-only">
             <el-button circle @click="$router.push('/cart')">
               <el-icon><ShoppingCart /></el-icon>
@@ -124,6 +129,7 @@ import {
   markNotificationRead,
   markAllNotificationsRead
 } from '../api/notification'
+import { getUnreadCount as getMsgUnreadCount } from '../api/message'
 
 const route = useRoute()
 const router = useRouter()
@@ -132,6 +138,7 @@ const cartCount = ref(0)
 
 const unreadCount = ref(0)
 const notifications = ref([])
+const msgUnreadCount = ref(0)
 
 const activeMenu = computed(() => '/' + (route.path.split('/')[1] || ''))
 
@@ -158,6 +165,19 @@ async function loadUnreadCount() {
     unreadCount.value = res.data
   } catch (e) {
     unreadCount.value = 0
+  }
+}
+
+async function loadMsgUnreadCount() {
+  if (!userStore.isLoggedIn) {
+    msgUnreadCount.value = 0
+    return
+  }
+  try {
+    const res = await getMsgUnreadCount()
+    msgUnreadCount.value = res.data
+  } catch (e) {
+    msgUnreadCount.value = 0
   }
 }
 
@@ -210,8 +230,12 @@ let pollTimer = null
 
 function startPolling() {
   loadUnreadCount()
+  loadMsgUnreadCount()
   if (pollTimer) clearInterval(pollTimer)
-  pollTimer = setInterval(loadUnreadCount, 30000)
+  pollTimer = setInterval(() => {
+    loadUnreadCount()
+    loadMsgUnreadCount()
+  }, 30000)
 }
 
 function stopPolling() {
@@ -228,6 +252,7 @@ watch(() => userStore.isLoggedIn, (loggedIn) => {
   } else {
     unreadCount.value = 0
     notifications.value = []
+    msgUnreadCount.value = 0
     stopPolling()
   }
 })

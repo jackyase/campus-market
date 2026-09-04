@@ -16,6 +16,9 @@
             <el-button v-if="!isMe" :type="profile?.following ? 'default' : 'primary'" size="small" round @click="onFollow">
               {{ profile?.following ? '已关注' : '+ 关注' }}
             </el-button>
+            <el-button v-if="!isMe" size="small" round @click="onMessage">
+              <el-icon><ChatDotRound /></el-icon>&nbsp;私信
+            </el-button>
           </div>
           <div class="username">@{{ profile?.username }}</div>
           <div v-if="schoolLine" class="school">
@@ -315,6 +318,15 @@ async function onFollow() {
   profile.value.followerCount = res.data.followerCount
   profile.value.followingCount = res.data.followingCount
   ElMessage.success(res.data.following ? '已关注' : '已取消关注')
+}
+
+function onMessage() {
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录')
+    router.push('/login')
+    return
+  }
+  router.push(`/chat?with=${userId.value}`)
 }
 
 async function onOpenStore() {
