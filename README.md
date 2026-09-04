@@ -51,6 +51,10 @@ npm run dev
 
 访问 http://localhost:5173（已配置代理转发到后端 8080）。
 
+### 一键启动（Windows）
+
+双击项目根目录的 `start.bat`，会自动启动后端、前端并打开浏览器（http://localhost:5173）。首次运行需先执行过一次 `npm install` 和 `./gradlew build`。
+
 ## 配置
 
 后端配置见 `src/main/resources/application.yml`。所有敏感项均支持**环境变量覆盖**，未设置时使用本地开发默认值：
