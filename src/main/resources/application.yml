@@ -1,13 +1,15 @@
+# 校园二手集市 后端配置
+# 敏感项均支持环境变量覆盖（未设置时使用本地开发默认值）
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
 
 spring:
   application:
     name: campus-market
   datasource:
-    url: jdbc:mysql://127.0.0.1:3307/campus_market?useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
-    username: root
-    password: "123456"
+    url: "${DB_URL:jdbc:mysql://127.0.0.1:3307/campus_market?useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai}"
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:123456}
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
@@ -21,7 +23,7 @@ spring:
 
 app:
   jwt:
-    secret: campus-market-jwt-secret-0123456789abcdef0123456789abcdef0123456789abcdef
-    expiration: 86400000
+    secret: ${JWT_SECRET:campus-market-jwt-secret-0123456789abcdef0123456789abcdef0123456789abcdef}
+    expiration: ${JWT_EXPIRATION:86400000}
   upload:
-    dir: D:/campus-market/upload
+    dir: ${UPLOAD_DIR:D:/campus-market/upload}

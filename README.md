@@ -31,10 +31,10 @@
 ./gradlew bootRun
 ```
 
-启动前请确保 MySQL 已运行，并创建数据库：
+启动前请确保 MySQL 已运行，并执行建库脚本：
 
-```sql
-CREATE DATABASE IF NOT EXISTS campus_market DEFAULT CHARACTER SET utf8mb4;
+```bash
+mysql -u root -p < sql/init.sql
 ```
 
 数据表由 JPA（`ddl-auto: update`）自动创建，分类种子数据在启动时自动初始化。
@@ -51,8 +51,16 @@ npm run dev
 
 ## 配置
 
-后端配置见 `src/main/resources/application.yml`：
+后端配置见 `src/main/resources/application.yml`。所有敏感项均支持**环境变量覆盖**，未设置时使用本地开发默认值：
 
-- `spring.datasource`：数据库连接
-- `app.jwt`：JWT 密钥与有效期
-- `app.upload.dir`：文件上传目录（默认本地磁盘 `D:/campus-market/upload`，预留 MinIO / OSS 切换）
+| 环境变量 | 默认值 | 说明 |
+| --- | --- | --- |
+| `SERVER_PORT` | `8080` | 服务端口 |
+| `DB_URL` | `jdbc:mysql://127.0.0.1:3307/campus_market?...` | 数据库连接 |
+| `DB_USERNAME` | `root` | 数据库账号 |
+| `DB_PASSWORD` | `123456` | 数据库密码 |
+| `JWT_SECRET` | 内置开发密钥 | JWT 签名密钥 |
+| `JWT_EXPIRATION` | `86400000` | Token 有效期（毫秒） |
+| `UPLOAD_DIR` | `D:/campus-market/upload` | 文件上传目录（本地磁盘，预留 MinIO / OSS 切换） |
+
+生产或他人环境请通过环境变量注入真实值，勿将真实密码提交进仓库。
