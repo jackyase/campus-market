@@ -7,7 +7,6 @@
         <el-tab-pane v-for="t in tabs" :key="t.value" :name="t.value">
           <template #label>
             {{ t.label }}
-            <el-badge v-if="t.value === '' ? total > 0 : counts[t.value]" :value="t.value === '' ? total : counts[t.value]" class="tab-badge" />
           </template>
         </el-tab-pane>
       </el-tabs>
@@ -94,14 +93,13 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Picture } from '@element-plus/icons-vue'
-import { getOrders, getOrderCounts, payOrder, cancelOrder, confirmOrder } from '../api/order'
+import { getOrders, payOrder, cancelOrder, confirmOrder } from '../api/order'
 import { createReview } from '../api/review'
 import { ORDER_STATUS_LABELS, ORDER_STATUS_TAG_TYPES } from '../utils/constants'
 
 const router = useRouter()
 const activeStatus = ref('')
 const orders = ref([])
-const counts = ref({})
 const total = ref(0)
 const page = ref(0)
 const size = 10
@@ -123,11 +121,6 @@ async function load() {
   total.value = res.data.total
 }
 
-async function loadCounts() {
-  const res = await getOrderCounts()
-  counts.value = res.data
-}
-
 function onTabChange() {
   page.value = 0
   load()
@@ -147,7 +140,6 @@ async function onCancel(o) {
   await cancelOrder(o.id)
   ElMessage.success('订单已取消')
   load()
-  loadCounts()
 }
 
 async function onConfirm(o) {
@@ -155,7 +147,6 @@ async function onConfirm(o) {
   await confirmOrder(o.id)
   ElMessage.success('已确认收货')
   load()
-  loadCounts()
 }
 
 function sellerTip(status) {
@@ -199,7 +190,6 @@ async function submitReview() {
     ElMessage.success('评价成功')
     reviewVisible.value = false
     load()
-    loadCounts()
   } finally {
     submittingReview.value = false
   }
@@ -207,7 +197,6 @@ async function submitReview() {
 
 onMounted(() => {
   load()
-  loadCounts()
 })
 </script>
 
@@ -222,9 +211,6 @@ onMounted(() => {
   font-weight: 700;
   color: #303133;
   margin-bottom: 16px;
-}
-.tab-badge {
-  margin-left: 4px;
 }
 .order-list {
   display: flex;

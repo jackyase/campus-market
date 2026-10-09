@@ -29,13 +29,61 @@ const routes = [
 
 const router = createRouter({
   history: createWebHistory(),
-  routes
+  routes,
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) return savedPosition
+    return { top: 0 }
+  }
 })
 
+// —— 顶部加载进度条（轻量，无第三方依赖）——
+let progressEl = null
+
+function ensureProgress() {
+  if (progressEl) return progressEl
+  progressEl = document.createElement('div')
+  progressEl.style.cssText =
+    'position:fixed;top:0;left:0;height:2px;width:0;background:linear-gradient(90deg,#4f6ef7,#7b5cf0);' +
+    'z-index:9999;opacity:0;box-shadow:0 0 6px rgba(79,110,247,.4);pointer-events:none;'
+  document.body.appendChild(progressEl)
+  return progressEl
+}
+
+function startProgress() {
+  const el = ensureProgress()
+  el.style.transition = 'none'
+  el.style.width = '0'
+  el.style.opacity = '1'
+  void el.offsetWidth
+  el.style.transition = 'width .3s ease'
+  el.style.width = '72%'
+}
+
+function finishProgress() {
+  if (!progressEl) return
+  progressEl.style.transition = 'width .15s ease, opacity .3s ease'
+  progressEl.style.width = '100%'
+  setTimeout(() => {
+    progressEl.style.opacity = '0'
+    setTimeout(() => {
+      progressEl.style.width = '0'
+    }, 300)
+  }, 150)
+}
+
 router.beforeEach((to) => {
+  startProgress()
   if (to.meta.requiresAuth && !localStorage.getItem('token')) {
     return { name: 'login', query: { redirect: to.fullPath } }
   }
+})
+
+router.afterEach(() => {
+  finishProgress()
+})
+
+router.onError(() => {
+  finishProgress()
 })
 
 export default router

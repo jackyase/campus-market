@@ -10,7 +10,7 @@
       </el-card>
 
       <el-card v-else :body-style="{ padding: 0 }">
-        <el-table :data="items" @selection-change="onSelectionChange" style="width: 100%">
+        <el-table ref="tableRef" :data="items" @selection-change="onSelectionChange" style="width: 100%">
           <el-table-column type="selection" width="50" />
           <el-table-column label="商品" min-width="320">
             <template #default="{ row }">
@@ -69,7 +69,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Picture } from '@element-plus/icons-vue'
@@ -78,6 +78,7 @@ import { checkoutCart } from '../api/order'
 import { CONDITION_LABELS } from '../utils/constants'
 
 const router = useRouter()
+const tableRef = ref(null)
 const items = ref([])
 const selected = ref([])
 const checkingOut = ref(false)
@@ -92,6 +93,11 @@ const totalAmount = computed(() =>
 async function load() {
   const res = await getCart()
   items.value = res.data
+  // 默认全选所有可用商品，让「去结算」无需手动勾选即可用
+  await nextTick()
+  items.value.forEach((row) => {
+    if (row.available) tableRef.value?.toggleRowSelection(row, true)
+  })
 }
 
 function onSelectionChange(rows) {

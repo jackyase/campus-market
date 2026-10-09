@@ -19,6 +19,7 @@
             trigger="click"
             :teleported="false"
             @show="loadNotifications"
+            @hide="onHideNotifications"
           >
             <template #reference>
               <el-badge :value="unreadCount" :hidden="unreadCount === 0" class="notify-badge">
@@ -58,11 +59,9 @@
               <el-icon><ChatDotRound /></el-icon>
             </el-button>
           </el-badge>
-          <el-badge :value="cartCount" :hidden="cartCount === 0" class="cart-badge desktop-only">
-            <el-button circle @click="$router.push('/cart')">
-              <el-icon><ShoppingCart /></el-icon>
-            </el-button>
-          </el-badge>
+          <el-button circle class="desktop-only" @click="$router.push('/cart')">
+            <el-icon><ShoppingCart /></el-icon>
+          </el-button>
           <el-button type="primary" round class="desktop-only" @click="$router.push('/publish')">
             <el-icon><Plus /></el-icon>&nbsp;发布
           </el-button>
@@ -95,7 +94,11 @@
       </div>
     </header>
     <main class="main">
-      <router-view />
+      <router-view v-slot="{ Component }">
+        <transition name="fade-slide" mode="out-in">
+          <component :is="Component" />
+        </transition>
+      </router-view>
     </main>
 
     <nav class="bottom-nav">
@@ -109,9 +112,7 @@
         <el-icon :size="26"><Plus /></el-icon>
       </router-link>
       <router-link to="/cart" class="tab" :class="{ active: route.path === '/cart' }">
-        <el-badge :value="cartCount" :hidden="cartCount === 0">
-          <el-icon :size="22"><ShoppingCart /></el-icon>
-        </el-badge><span>购物车</span>
+        <el-icon :size="22"><ShoppingCart /></el-icon><span>购物车</span>
       </router-link>
       <router-link to="/profile" class="tab" :class="{ active: route.path === '/profile' }">
         <el-icon :size="22"><User /></el-icon><span>我的</span>
@@ -124,7 +125,6 @@
 import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '../store/user'
-import { getCart } from '../api/cart'
 import {
   getNotifications,
   getUnreadCount,
@@ -136,26 +136,12 @@ import { getUnreadCount as getMsgUnreadCount } from '../api/message'
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
-const cartCount = ref(0)
 
 const unreadCount = ref(0)
 const notifications = ref([])
 const msgUnreadCount = ref(0)
 
 const activeMenu = computed(() => '/' + (route.path.split('/')[1] || ''))
-
-async function loadCartCount() {
-  if (!userStore.isLoggedIn) {
-    cartCount.value = 0
-    return
-  }
-  try {
-    const res = await getCart()
-    cartCount.value = res.data.length
-  } catch (e) {
-    cartCount.value = 0
-  }
-}
 
 async function loadUnreadCount() {
   if (!userStore.isLoggedIn) {
@@ -214,6 +200,19 @@ async function onMarkAllRead() {
   }
 }
 
+// 关闭通知面板即视为「已读」，红点自动消失
+async function onHideNotifications() {
+  if (unreadCount.value > 0) {
+    try {
+      await markAllNotificationsRead()
+      notifications.value.forEach((n) => (n.read = true))
+      unreadCount.value = 0
+    } catch (e) {
+      // ignore
+    }
+  }
+}
+
 function formatTime(t) {
   return t ? t.replace('T', ' ').substring(0, 16) : ''
 }
@@ -250,7 +249,6 @@ function stopPolling() {
 }
 
 watch(() => userStore.isLoggedIn, (loggedIn) => {
-  loadCartCount()
   if (loggedIn) {
     startPolling()
   } else {
@@ -261,8 +259,13 @@ watch(() => userStore.isLoggedIn, (loggedIn) => {
   }
 })
 
+// 路由切换（如从聊天页返回）时立即刷新未读角标，避免等 30 秒轮询
+watch(() => route.fullPath, () => {
+  loadUnreadCount()
+  loadMsgUnreadCount()
+})
+
 onMounted(() => {
-  loadCartCount()
   if (userStore.isLoggedIn) {
     startPolling()
   }
