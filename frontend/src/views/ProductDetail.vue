@@ -25,6 +25,9 @@
               <span class="price">¥{{ product.price }}</span>
               <span v-if="product.originalPrice" class="original">¥{{ product.originalPrice }}</span>
             </div>
+            <div v-if="acceptedBargain" class="bargain-tip">
+              卖家已接受你的砍价，下单将按 <b>¥{{ acceptedBargain.price }}</b> 结算
+            </div>
             <div class="title-row">
               <h1 class="title">{{ product.title }}</h1>
               <el-button circle class="fav-btn" @click="onFavorite">
@@ -133,7 +136,7 @@ import { getPublicProfile } from '../api/user'
 import { getProductReviews } from '../api/review'
 import { getFavoriteIds, toggleFavorite } from '../api/favorite'
 import { reportTarget } from '../api/report'
-import { createBargain } from '../api/bargain'
+import { createBargain, getMyBargains } from '../api/bargain'
 import { useUserStore } from '../store/user'
 import { CONDITION_LABELS, CONDITION_TAG_TYPES, STATUS_LABELS } from '../utils/constants'
 
@@ -153,6 +156,7 @@ const submittingReport = ref(false)
 const bargainVisible = ref(false)
 const bargainPrice = ref(null)
 const submittingBargain = ref(false)
+const acceptedBargain = ref(null)
 
 async function load() {
   loading.value = true
@@ -163,6 +167,11 @@ async function load() {
     if (userStore.isLoggedIn) {
       const idsRes = await getFavoriteIds().catch(() => null)
       favorited.value = !!idsRes && (idsRes.data || []).includes(Number(res.data.id))
+      const bargainsRes = await getMyBargains().catch(() => null)
+      acceptedBargain.value =
+        (bargainsRes?.data || []).find(
+          (b) => b.productId === Number(res.data.id) && b.status === 'ACCEPTED'
+        ) || null
     }
     const [sellerRes, reviewsRes] = await Promise.all([
       getPublicProfile(res.data.sellerId),
@@ -314,6 +323,14 @@ onMounted(load)
   color: #c0c4cc;
   font-size: 16px;
   text-decoration: line-through;
+}
+.bargain-tip {
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: #fef0f0;
+  color: #f56c6c;
+  border-radius: 8px;
+  font-size: 13px;
 }
 .title {
   font-size: 20px;

@@ -1,5 +1,8 @@
 package org.example.demo4.trade;
 
+import org.example.demo4.bargain.Bargain;
+import org.example.demo4.bargain.BargainRepository;
+import org.example.demo4.bargain.BargainStatus;
 import org.example.demo4.common.BusinessException;
 import org.example.demo4.common.CurrentUserService;
 import org.example.demo4.common.PageResult;
@@ -38,6 +41,7 @@ public class TradeService {
     private final ProductRepository productRepository;
     private final ProductImageRepository imageRepository;
     private final PayService payService;
+    private final BargainRepository bargainRepository;
     private final CurrentUserService currentUserService;
     private final ReviewRepository reviewRepository;
     private final UserRepository userRepository;
@@ -48,6 +52,7 @@ public class TradeService {
                         ProductRepository productRepository,
                         ProductImageRepository imageRepository,
                         PayService payService,
+                        BargainRepository bargainRepository,
                         CurrentUserService currentUserService,
                         ReviewRepository reviewRepository,
                         UserRepository userRepository,
@@ -57,6 +62,7 @@ public class TradeService {
         this.productRepository = productRepository;
         this.imageRepository = imageRepository;
         this.payService = payService;
+        this.bargainRepository = bargainRepository;
         this.currentUserService = currentUserService;
         this.reviewRepository = reviewRepository;
         this.userRepository = userRepository;
@@ -159,8 +165,17 @@ public class TradeService {
         if (qty > product.getStock()) {
             throw new BusinessException("库存不足");
         }
-        Order order = buildOrder(buyer, product, qty);
+        Bargain accepted = acceptedBargain(productId, buyer.getId());
+        BigDecimal price = accepted == null ? product.getPrice() : accepted.getPrice();
+        Order order = buildOrder(buyer, product, qty, price);
         orderRepository.save(order);
+        // 下单成功后清理购物车里的同商品项，避免购物车角标残留
+        cartItemRepository.findByUserIdAndProductId(buyer.getId(), productId)
+                .ifPresent(cartItemRepository::delete);
+        if (accepted != null) {
+            accepted.setStatus(BargainStatus.COMPLETED);
+            bargainRepository.save(accepted);
+        }
         notificationService.notify(order.getSellerId(), NotificationService.TYPE_ORDER,
                 "有买家下单了「" + order.getProductTitle() + "」", order.getId());
         return toResponse(order);
@@ -184,8 +199,14 @@ public class TradeService {
             if (item.getQuantity() > product.getStock()) {
                 throw new BusinessException("商品「" + product.getTitle() + "」库存不足");
             }
-            Order order = buildOrder(buyer, product, item.getQuantity());
+            Bargain accepted = acceptedBargain(product.getId(), buyer.getId());
+            BigDecimal price = accepted == null ? product.getPrice() : accepted.getPrice();
+            Order order = buildOrder(buyer, product, item.getQuantity(), price);
             orderRepository.save(order);
+            if (accepted != null) {
+                accepted.setStatus(BargainStatus.COMPLETED);
+                bargainRepository.save(accepted);
+            }
             notificationService.notify(order.getSellerId(), NotificationService.TYPE_ORDER,
                     "有买家下单了「" + order.getProductTitle() + "」", order.getId());
             cartItemRepository.delete(item);
@@ -316,7 +337,14 @@ public class TradeService {
 
     // ============ 内部方法 ============
 
-    private Order buildOrder(User buyer, Product product, int quantity) {
+    private Bargain acceptedBargain(Long productId, Long buyerId) {
+        return bargainRepository
+                .findFirstByProductIdAndBuyerIdAndStatusOrderByCreatedAtDesc(
+                        productId, buyerId, BargainStatus.ACCEPTED)
+                .orElse(null);
+    }
+
+    private Order buildOrder(User buyer, Product product, int quantity, BigDecimal price) {
         Order order = new Order();
         order.setOrderNo(generateOrderNo());
         order.setBuyerId(buyer.getId());
@@ -325,9 +353,9 @@ public class TradeService {
         order.setProductId(product.getId());
         order.setProductTitle(product.getTitle());
         order.setProductImage(coverImages(List.of(product.getId())).getOrDefault(product.getId(), ""));
-        order.setPrice(product.getPrice());
+        order.setPrice(price);
         order.setQuantity(quantity);
-        order.setTotalAmount(product.getPrice().multiply(BigDecimal.valueOf(quantity)));
+        order.setTotalAmount(price.multiply(BigDecimal.valueOf(quantity)));
         order.setStatus(OrderStatus.PENDING_PAYMENT);
         return order;
     }

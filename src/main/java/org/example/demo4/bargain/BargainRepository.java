@@ -13,4 +13,7 @@ public interface BargainRepository extends JpaRepository<Bargain, Long> {
     List<Bargain> findBySellerIdOrderByCreatedAtDesc(Long sellerId);
 
     Optional<Bargain> findByIdAndSellerId(Long id, Long sellerId);
+
+    Optional<Bargain> findFirstByProductIdAndBuyerIdAndStatusOrderByCreatedAtDesc(
+            Long productId, Long buyerId, BargainStatus status);
 }

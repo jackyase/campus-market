@@ -47,11 +47,13 @@ const incomingList = ref([])
 
 function statusType(s) {
   if (s === 'ACCEPTED') return 'success'
+  if (s === 'COMPLETED') return 'success'
   if (s === 'REJECTED') return 'info'
   return 'warning'
 }
 function statusLabel(s) {
   if (s === 'ACCEPTED') return '已接受'
+  if (s === 'COMPLETED') return '已成单'
   if (s === 'REJECTED') return '已拒绝'
   return '待处理'
 }
