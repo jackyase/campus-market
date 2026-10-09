@@ -12,4 +12,8 @@ public interface PostCommentRepository extends JpaRepository<PostComment, Long> 
 
     @Query("select c.postId, count(c) from PostComment c where c.postId in :postIds group by c.postId")
     List<Object[]> countByPostIdIn(@Param("postIds") Collection<Long> postIds);
+
+    void deleteByPostIdIn(Collection<Long> postIds);
+
+    void deleteByUserId(Long userId);
 }

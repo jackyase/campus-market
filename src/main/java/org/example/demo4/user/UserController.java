@@ -11,6 +11,7 @@ import org.example.demo4.user.dto.ProfileUpdateRequest;
 import org.example.demo4.user.dto.PublicProfileResponse;
 import org.example.demo4.user.dto.UserResponse;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -64,5 +65,11 @@ public class UserController {
     @GetMapping("/users/{id}/reviews")
     public R<List<ReviewResponse>> userReviews(@PathVariable Long id) {
         return R.ok(reviewService.listBySeller(id));
+    }
+
+    @DeleteMapping("/user/account")
+    public R<Void> deleteAccount() {
+        userService.deleteAccount();
+        return R.ok();
     }
 }

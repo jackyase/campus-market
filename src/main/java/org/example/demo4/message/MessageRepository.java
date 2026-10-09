@@ -25,4 +25,6 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     @Modifying
     @Query("update Message m set m.read = true where m.senderId = :other and m.receiverId = :me and m.read = false")
     int markConversationRead(@Param("me") Long me, @Param("other") Long other);
+
+    void deleteBySenderIdOrReceiverId(Long senderId, Long receiverId);
 }

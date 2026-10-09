@@ -9,4 +9,6 @@ public interface PostMediaRepository extends JpaRepository<PostMedia, Long> {
     List<PostMedia> findByPostIdOrderBySortOrderAsc(Long postId);
 
     List<PostMedia> findByPostIdIn(Collection<Long> postIds);
+
+    void deleteByPostIdIn(Collection<Long> postIds);
 }

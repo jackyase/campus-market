@@ -20,4 +20,8 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     @Query("select avg(r.sellerRating) from Review r where r.sellerId = :sellerId")
     Double avgSellerRating(@Param("sellerId") Long sellerId);
+
+    void deleteByReviewerId(Long reviewerId);
+
+    void deleteBySellerId(Long sellerId);
 }

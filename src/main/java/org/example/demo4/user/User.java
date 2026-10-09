@@ -71,6 +71,9 @@ public class User {
     @Column(name = "store_id")
     private Long storeId;
 
+    @Column(nullable = false)
+    private boolean deleted = false;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

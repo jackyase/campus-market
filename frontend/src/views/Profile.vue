@@ -34,6 +34,9 @@
             <span><b>{{ profile?.followerCount || 0 }}</b> 粉丝</span>
             <span><b>{{ profile?.followingCount || 0 }}</b> 关注</span>
           </div>
+          <div v-if="isMe" class="account-actions">
+            <el-button link type="danger" size="small" @click="onDeleteAccount">注销账号</el-button>
+          </div>
         </div>
         <div v-if="profile?.sellerRatingCount" class="rating-box">
           <div class="score">{{ (profile.sellerRating || 0).toFixed(1) }}</div>
@@ -173,11 +176,11 @@
 <script setup>
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { Picture, School, Edit, Shop, Goods, List } from '@element-plus/icons-vue'
 import { useUserStore } from '../store/user'
 import { getMe } from '../api/auth'
-import { updateProfile, getPublicProfile, getUserProducts, getUserReviews } from '../api/user'
+import { updateProfile, getPublicProfile, getUserProducts, getUserReviews, deleteAccount } from '../api/user'
 import { followUser, getUserPosts } from '../api/community'
 import { openStore } from '../api/store'
 import { uploadImage } from '../api/upload'
@@ -349,6 +352,26 @@ async function onOpenStore() {
   }
 }
 
+async function onDeleteAccount() {
+  try {
+    await ElMessageBox.confirm(
+      '注销后账号将无法登录，个人数据（购物车、收藏、私信等）和发布的商品会被删除；帖子、订单、评价等历史记录会保留并显示为「已注销用户」。确定要注销吗？',
+      '注销账号',
+      { confirmButtonText: '确定注销', cancelButtonText: '取消', type: 'warning' }
+    )
+  } catch (e) {
+    return
+  }
+  try {
+    await deleteAccount()
+    ElMessage.success('账号已注销')
+    userStore.logout()
+    router.push('/')
+  } catch (e) {
+    // 错误已由 request 拦截器统一提示
+  }
+}
+
 watch(() => route.params.id, load)
 onMounted(load)
 </script>
@@ -432,6 +455,9 @@ onMounted(load)
 }
 .stats-line b {
   color: #303133;
+}
+.account-actions {
+  margin-top: 12px;
 }
 .merchant-nav {
   display: flex;

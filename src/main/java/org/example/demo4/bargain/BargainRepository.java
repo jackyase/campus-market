@@ -16,4 +16,8 @@ public interface BargainRepository extends JpaRepository<Bargain, Long> {
 
     Optional<Bargain> findFirstByProductIdAndBuyerIdAndStatusOrderByCreatedAtDesc(
             Long productId, Long buyerId, BargainStatus status);
+
+    void deleteByBuyerId(Long buyerId);
+
+    void deleteBySellerId(Long sellerId);
 }

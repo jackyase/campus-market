@@ -38,6 +38,9 @@ public class AuthService {
     public LoginResponse login(LoginRequest req) {
         User user = userRepository.findByUsername(req.getUsername())
                 .orElseThrow(() -> new BusinessException("用户名或密码错误"));
+        if (user.isDeleted()) {
+            throw new BusinessException("该账号已注销");
+        }
         if (!passwordEncoder.matches(req.getPassword(), user.getPassword())) {
             throw new BusinessException("用户名或密码错误");
         }

@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -30,4 +31,12 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @Query("select o.status, count(o) from Order o where o.buyerId = :buyerId group by o.status")
     List<Object[]> countGroupByStatus(@Param("buyerId") Long buyerId);
+
+    void deleteByBuyerId(Long buyerId);
+
+    void deleteBySellerId(Long sellerId);
+
+    @Modifying
+    @Query("update Order o set o.sellerName = :name where o.sellerId = :sellerId")
+    int updateSellerNameBySellerId(@Param("name") String name, @Param("sellerId") Long sellerId);
 }

@@ -6,4 +6,6 @@ import java.util.Optional;
 
 public interface StoreRepository extends JpaRepository<Store, Long> {
     Optional<Store> findByOwnerId(Long ownerId);
+
+    void deleteByOwnerId(Long ownerId);
 }
